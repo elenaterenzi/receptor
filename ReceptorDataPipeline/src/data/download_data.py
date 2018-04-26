@@ -4,6 +4,7 @@ import dotenv
 import re
 from azure.storage.blob import BlockBlobService
 
+
 def main(project_dir):
     
     blob_storage_account = os.getenv("BLOB_STORAGE_ACCOUNT")

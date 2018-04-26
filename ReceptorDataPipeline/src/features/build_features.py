@@ -13,20 +13,25 @@ def main(project_dir):
     interim_data_dir = os.path.join(project_dir, "data", "interim")
     out_file = os.path.join(interim_data_dir, "features.csv")
 
-    df = combine_files_to_df(raw_data_dir)
-    #print(len(df))
+    df = combine_files_to_df(raw_data_dir, ".csv")
     df_features = build_features(df)
-    #print(len(df_features))
-    # print(df_features)
 
-    #df_features.to_csv(out_file)
+    # Write out
+    df_features.to_csv(out_file)
 
 
-def combine_files_to_df(dir_path):
-    all_files = glob.glob(dir_path + "/*.csv")
+def combine_files_to_df(dir_path, file_extension):
+    """ 
+    Combines CSV files into a single Pandas Dataframe
+    """
+    logger = logging.getLogger(__name__)
+    logger.info("Combinding files ending in %(file_extension)s in %(dir_path)s into a Pandas Dataframe" % {"file_extension": file_extension, "dir_path": dir_path})
+
+    all_files = glob.glob(dir_path + "/*" + file_extension)
     df_all = pd.DataFrame()
     list_ = []
     for file_ in all_files:
+        
         df = pd.read_csv(file_,index_col=None, header=0)
         # Add receipt_id column equal to the file name
         file_name = os.path.basename(file_)
@@ -37,35 +42,43 @@ def combine_files_to_df(dir_path):
 
 
 def build_features(df):
+    """ 
+    Main method. Builds features (appends columns) to the dataframe (df)
+    """
+    logger = logging.getLogger(__name__)
+    logger.info("Building Features...")
+
     df = normalize_coordinates(df)
     return(df)
 
 
-def normalize_coordinates(df):
+def normalize_coordinates(df_in):
     """ 
     Appends columns which contains normalized x,y coordinates
     """
+    logger = logging.getLogger(__name__)
+    logger.info("Normalizing coordinates...")
+
+    # Set index and preserve incremental id
+    df_in = df_in.rename(columns = {"Unnamed: 0": "id"})
+    df_in = df_in.set_index(["receipt_id", "id"])
 
     # heighest_point is max(y1, y2)
     # rightmost_point is max(x2, x3)
-    df_max = df.groupby("receipt_id")["receipt_id", "y1", "y2", "x2", "x3"]\
-        .transform(max)\
-        .set_index('receipt_id')
+    df_max = df_in.groupby("receipt_id")["y1", "y2", "x2", "x3"].transform(max)
     df_max["heighest_point"] = df_max[["y1", "y2"]].max(axis=1)
     df_max["rightmost_point"] = df_max[["x2", "x3"]].max(axis=1)
     df_max = df_max.drop(["y1", "y2", "x2", "x3"], axis=1)
 
     # lowest_point is min(y4, y3)
     # rightmost_point is max(x2, x3)
-    df_min = df.groupby("receipt_id")["receipt_id", "y3", "y4", "x1", "x4"]\
-        .transform(min)\
-        .set_index('receipt_id')
+    df_min = df_in.groupby("receipt_id")["y3", "y4", "x1", "x4"].transform(min)
     df_min['lowest_point'] = df_min[["y3", "y4"]].max(axis=1)
     df_min['leftmost_point'] = df_min[["x1", "x4"]].max(axis=1)
     df_min = df_min.drop(["y3", "y4", "x1", "x4"], axis=1)
 
     # Join back to the original dataset (index = receipt_id)
-    df = df.set_index('receipt_id').join(df_max).join(df_min)
+    df = df_in.join(df_max).join(df_min)
 
     # Calculate relative coordinates
     df["x1_rel"] = (df["x1"] - df["leftmost_point"]) / (df["rightmost_point"] - df["leftmost_point"])
@@ -81,6 +94,7 @@ def normalize_coordinates(df):
     df["y4_rel"] = (df["y4"] - df["lowest_point"]) / (df["heighest_point"] - df["lowest_point"])
 
     return(df)
+
 
 if __name__ == '__main__':
     log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
