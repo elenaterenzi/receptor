@@ -20,10 +20,13 @@ namespace ReceptorBot
                 var msg = context.Activity;
                 if (msg.Attachments?.Count > 0)
                 {
-                    var cli = new VisionServiceClient("fc215cc01b1e4ca0b6f64a1740aa4ae0");
                     var http = new HttpClient();
                     var str = await http.GetStreamAsync(msg.Attachments[0].ContentUrl);
-                    var t = await cli.CreateHandwritingRecognitionOperationAsync(str);
+                    var cli = new OcrClient(Config.VisionApiKey, "https://westus.api.cognitive.microsoft.com/vision/v1.0/");
+                    var res = await cli.StartOcrAsync(str);
+                    res = await cli.GetOcrResult(res);
+                    await context.SendActivity(res);
+                    /*
                     HandwritingRecognitionOperationResult res;
                     do
                     {
@@ -34,6 +37,7 @@ namespace ReceptorBot
                     {
                         await context.SendActivity(x.Words.Fold("",(w,s) => s+" "+w.Text));
                     }
+                    */
                 }
                 else
                 {
