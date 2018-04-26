@@ -49,6 +49,7 @@ def build_features(df):
     logger.info("Building Features...")
 
     df = normalize_coordinates(df)
+    
     return(df)
 
 
