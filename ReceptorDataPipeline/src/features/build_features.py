@@ -1,9 +1,11 @@
 import os
 import logging
 import dotenv
+import random
 import glob
+import re
 import pandas as pd
-
+import numpy as np
 
 def main(project_dir):
     logger = logging.getLogger(__name__)
@@ -35,10 +37,10 @@ def combine_files_to_df(dir_path, file_extension):
     for file_ in all_files:
         df = pd.read_csv(file_)
         # Add receipt_id column equal to the file name
-        df['id'] = df.index
+        df['word_id'] = df.index
         file_name = os.path.basename(file_)
         df["receipt_id"] = file_name
-        df = df.set_index(["receipt_id", "id"])
+        df = df.set_index(["receipt_id", "word_id"])
         list_.append(df)
     df_all = pd.concat(list_)
     return(df_all)
@@ -51,9 +53,23 @@ def build_features(df):
     logger = logging.getLogger(__name__)
     logger.info("Building Features...")
 
+    # Features
     df = normalize_coordinates(df)
-    
-    return(df)
+    df = add_text_features(df)
+
+    # TODO - need labelled dataset
+    # TEMPORARY, create target column
+    df["target"] = np.random.randint(0,2, size=len(df))
+
+    # Select only relevant columns
+    features = [
+        # "text", # For testing purposes
+        "x1_rel", "y1_rel", "x2_rel", "y2_rel", "x3_rel", "y3_rel", "x4_rel", "y4_rel",
+        "text_has_number", "text_is_number", "text_has_year", "text_has_year", "text_has_month", "text_has_day_of_month", "text_has_DMY_or_YMD",
+        "target"]
+    df_features = df[features]
+
+    return(df_features)
 
 
 def normalize_coordinates(df_in):
@@ -62,10 +78,6 @@ def normalize_coordinates(df_in):
     """
     logger = logging.getLogger(__name__)
     logger.info("Normalizing coordinates...")
-
-    # Set index and preserve incremental id
-    #df_in = df_in.rename(columns = {"Unnamed: 0": "id"})
-    #df_in = df_in.set_index(["receipt_id", "id"])
 
     # heighest_point is max(y1, y2)
     # rightmost_point is max(x2, x3)
@@ -100,6 +112,23 @@ def normalize_coordinates(df_in):
     df["y4_rel"] = (df["y4"] - df["lowest_point"]) / (df["heighest_point"] - df["lowest_point"])
 
     return(df)
+
+
+def add_text_features(df_in):
+    """ 
+    Check if the word column contains a date.
+    """
+    df_in["text_has_number"] = df_in["text"].str.contains('\d')
+    df_in["text_is_number"] = df_in["text"].str.isdigit()
+    df_in["text_len"] = df_in["text"].str.len()
+
+    # https://stackoverflow.com/questions/51224/regular-expression-to-match-valid-dates
+    df_in["text_has_year"] = df_in["text"].str.match('(\d{4}|\d{2})') # Not precise
+    df_in["text_has_month"] = df_in["text"].str.match('(0?[1-9]|1[0-2])') # Not precise
+    df_in["text_has_day_of_month"] = df_in["text"].str.match('(0?[1-9]|[12]\d|30|31)') # Not precise
+    df_in["text_has_DMY_or_YMD"] = df_in["text"].str.match('(\b(0?[1-9]|[12]\d|30|31)[^\w\d\r\n:](0?[1-9]|1[0-2])[^\w\d\r\n:](\d{4}|\d{2})\b)|(\b(0?[1-9]|1[0-2])[^\w\d\r\n:](0?[1-9]|[12]\d|30|31)[^\w\d\r\n:](\d{4}|\d{2})\b)') # Not precise
+
+    return(df_in)
 
 
 if __name__ == '__main__':
