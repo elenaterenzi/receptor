@@ -21,6 +21,7 @@ def main(project_dir):
         os.makedirs(interim_data_dir)
     df_features.to_csv(out_file)
 
+
 def combine_files_to_df(dir_path, file_extension):
     """ 
     Combines CSV files into a single Pandas Dataframe
@@ -32,11 +33,12 @@ def combine_files_to_df(dir_path, file_extension):
     df_all = pd.DataFrame()
     list_ = []
     for file_ in all_files:
-        
-        df = pd.read_csv(file_,index_col=None, header=0)
+        df = pd.read_csv(file_)
         # Add receipt_id column equal to the file name
+        df['id'] = df.index
         file_name = os.path.basename(file_)
         df["receipt_id"] = file_name
+        df = df.set_index(["receipt_id", "id"])
         list_.append(df)
     df_all = pd.concat(list_)
     return(df_all)
@@ -62,8 +64,8 @@ def normalize_coordinates(df_in):
     logger.info("Normalizing coordinates...")
 
     # Set index and preserve incremental id
-    df_in = df_in.rename(columns = {"Unnamed: 0": "id"})
-    df_in = df_in.set_index(["receipt_id", "id"])
+    #df_in = df_in.rename(columns = {"Unnamed: 0": "id"})
+    #df_in = df_in.set_index(["receipt_id", "id"])
 
     # heighest_point is max(y1, y2)
     # rightmost_point is max(x2, x3)
@@ -79,8 +81,10 @@ def normalize_coordinates(df_in):
     df_min['leftmost_point'] = df_min[["x1", "x4"]].max(axis=1)
     df_min = df_min.drop(["y3", "y4", "x1", "x4"], axis=1)
 
-    # Join back to the original dataset (index = receipt_id)
+    # Join back to the original dataset.
+    # Join will default to index
     df = df_in.join(df_max).join(df_min)
+    df = df.drop(columns=["Unnamed: 0"])
 
     # Calculate relative coordinates
     df["x1_rel"] = (df["x1"] - df["leftmost_point"]) / (df["rightmost_point"] - df["leftmost_point"])
