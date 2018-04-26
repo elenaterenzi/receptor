@@ -17,8 +17,9 @@ def main(project_dir):
     df_features = build_features(df)
 
     # Write out
+    if not os.path.exists(interim_data_dir):
+        os.makedirs(interim_data_dir)
     df_features.to_csv(out_file)
-
 
 def combine_files_to_df(dir_path, file_extension):
     """ 

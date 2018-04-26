@@ -1,4 +1,4 @@
-.PHONY: test_environment requirements deploy_resources data configure_databricks clean lint create_environment
+.PHONY: test_environment requirements data features clean lint create_environment
 .INTERMEDIATE: deploy_resources
 
 #################################################################################

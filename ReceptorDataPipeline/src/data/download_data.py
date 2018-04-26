@@ -22,6 +22,11 @@ def download_from_blob(storage_account, storage_key, container_name, blob_folder
     Downloads file from blob storage
     """
     logger = logging.getLogger(__name__)
+
+    # Create folder if not exists
+    if not os.path.exists(local_folder):
+        os.makedirs(local_folder)
+
     block_blob_service = BlockBlobService(account_name=storage_account, account_key=storage_key)
     blob_list = block_blob_service.list_blobs(container_name, blob_folder_path + '/', delimiter='/')
     for blob in blob_list:
