@@ -39,3 +39,6 @@ Create a Bot that can identify and extract date and amount data for handwritten 
     * Each session is 3 hours.
     * Before start of each day, 10 min stand-up where each member shares work performed and work to be completed for the day.
     * At end of each day, 10 min stand-up where each member wraps up the day's work.
+
+## References
+* Fuzzy Logic Parser: https://github.com/borysrybak/FuzzyLogicParser
