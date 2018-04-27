@@ -10,11 +10,14 @@ def main(project_dir):
     blob_storage_account = os.getenv("BLOB_STORAGE_ACCOUNT")
     blob_storage_key = os.getenv("BLOB_STORAGE_KEY")
     container_name = os.getenv("BLOB_STORAGE_CONTAINER")
-    blob_folder_path = os.getenv("BLOB_STORAGE_CSV_FOLDER")
+    blob_folder_original_path = os.getenv("BLOB_STORAGE_ORIGINAL_CSV_FOLDER")
+    blob_folder_labelled_path = os.getenv("BLOB_STORAGE_LABELLED_CSV_FOLDER")
 
-    raw_data_dir = os.path.join(project_dir, 'data', 'raw')
+    raw_orig_data_dir = os.path.join(project_dir, 'data', 'raw', 'original')
+    raw_labelled_data_dir = os.path.join(project_dir, 'data', 'raw', 'labelled')
 
-    download_from_blob(blob_storage_account, blob_storage_key, container_name, blob_folder_path, local_folder = raw_data_dir)
+    #download_from_blob(blob_storage_account, blob_storage_key, container_name, blob_folder_original_path, local_folder = raw_orig_data_dir)
+    download_from_blob(blob_storage_account, blob_storage_key, container_name, blob_folder_labelled_path, local_folder = raw_labelled_data_dir)
 
 
 def download_from_blob(storage_account, storage_key, container_name, blob_folder_path, local_folder):

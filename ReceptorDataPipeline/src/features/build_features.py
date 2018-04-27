@@ -11,17 +11,34 @@ def main(project_dir):
     logger = logging.getLogger(__name__)
 
     # Build paths
-    raw_data_dir = os.path.join(project_dir, "data", "raw")
-    interim_data_dir = os.path.join(project_dir, "data", "interim")
+    raw_orig_data_dir = os.path.join(project_dir, 'data', 'raw', 'original')
+    raw_labelled_data_dir = os.path.join(project_dir, 'data', 'raw', 'labelled')
+
+    interim_data_dir = os.path.join(project_dir, "data", "interims")
     out_file = os.path.join(interim_data_dir, "features.csv")
 
-    df = combine_files_to_df(raw_data_dir, ".csv")
-    df_features = build_features(df)
+    df_orig = combine_files_to_df(raw_orig_data_dir, ".csv")
+    df_labelled = combine_files_to_df(raw_labelled_data_dir, ".csv")
+
+    # Replace empty values with zeros
+    df_labelled["linelabel"][df_labelled["linelabel"].isnull()] = 0
+    df_labelled["wordlabel"][df_labelled["wordlabel"].isnull()] = 0
+    df_labelled["wordexactlabel"][df_labelled["wordexactlabel"].isnull()] = 0
+
+    # Join df_orig and df_labelled
+    keep_columns = df_orig.columns.values.tolist()
+    keep_columns = np.concatenate((keep_columns, ["linelabel" , "wordlabel" , "wordexactlabel"]))
+    df_joined = df_orig.join(df_labelled, lsuffix="_l")
+    df_joined = df_joined[keep_columns.tolist()]
+
+    df_features = build_features(df_joined)
 
     # Write out
     if not os.path.exists(interim_data_dir):
         os.makedirs(interim_data_dir)
     df_features.to_csv(out_file)
+
+    print("DONE")
 
 
 def combine_files_to_df(dir_path, file_extension):
@@ -35,12 +52,13 @@ def combine_files_to_df(dir_path, file_extension):
     df_all = pd.DataFrame()
     list_ = []
     for file_ in all_files:
-        df = pd.read_csv(file_)
+        df = pd.read_csv(file_, index_col=0)
         # Add receipt_id column equal to the file name
         df['word_id'] = df.index
         file_name = os.path.basename(file_)
         df["receipt_id"] = file_name
         df = df.set_index(["receipt_id", "word_id"])
+        # Append to list of dfs
         list_.append(df)
     df_all = pd.concat(list_)
     return(df_all)
@@ -59,14 +77,14 @@ def build_features(df):
 
     # TODO - need labelled dataset
     # TEMPORARY, create target column
-    df["target"] = np.random.randint(0,2, size=len(df))
+    # df["target"] = np.random.randint(0,2, size=len(df))
 
     # Select only relevant columns
     features = [
         # "text", # For testing purposes
         "x1_rel", "y1_rel", "x2_rel", "y2_rel", "x3_rel", "y3_rel", "x4_rel", "y4_rel",
         "text_has_number", "text_is_number", "text_has_year", "text_has_year", "text_has_month", "text_has_day_of_month", "text_has_DMY_or_YMD",
-        "target"]
+        "linelabel" , "wordlabel" , "wordexactlabel"]
     df_features = df[features]
 
     return(df_features)
@@ -96,7 +114,7 @@ def normalize_coordinates(df_in):
     # Join back to the original dataset.
     # Join will default to index
     df = df_in.join(df_max).join(df_min)
-    df = df.drop(columns=["Unnamed: 0"])
+    #df = df.drop(columns=["Unnamed: 0"])
 
     # Calculate relative coordinates
     df["x1_rel"] = (df["x1"] - df["leftmost_point"]) / (df["rightmost_point"] - df["leftmost_point"])

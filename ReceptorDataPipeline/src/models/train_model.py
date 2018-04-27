@@ -11,12 +11,15 @@ def main(project_dir):
 
     # Build paths
     model_dir = os.path.join(project_dir, "models")
-    interim_data_dir = os.path.join(project_dir, "data", "interim")
+    interim_data_dir = os.path.join(project_dir, "data", "interims")
     features_file = os.path.join(interim_data_dir, "features.csv")
     
     # Read features
     df = pd.read_csv(features_file)
 
+    df = df.fillna(0)
+    print(df.info())
+    print(df.describe())
     # Split
     X_train, X_test, y_train, y_test = split_data(df)
 
@@ -42,7 +45,7 @@ def split_data(df_in):
         "x1_rel", "y1_rel", "x2_rel", "y2_rel", "x3_rel", "y3_rel", "x4_rel", "y4_rel",
         "text_has_number", "text_is_number", "text_has_year", "text_has_year", "text_has_month", "text_has_day_of_month", "text_has_DMY_or_YMD"]
     X = df_in[features]
-    y = df_in['target']
+    y = df_in['wordexactlabel']
     return(train_test_split(X, y, test_size=test_size, random_state=seed))
 
 
