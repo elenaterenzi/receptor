@@ -17,7 +17,13 @@ Create a Bot that can identify and extract date and amount data for handwritten 
 
 ## Lessons Learned
 * Technical Learnings:
-  * Work in progress.
+  * Limitations for image size and dimension: Needed to ensure all receipt images are within stipulated limits in technical documentation (Less than 4MB, greater than 50 x 50 pixels).
+  * Utilization of bounding boxes to read and segment data in receipts: Discussed multiple options for extracting receipt data and concluded that the most appropriate method is still reading and segmenting receipts into bounding boxes with data.
+  * Validation of data contained in bounding boxes: Discussed the various challenges in deciphering receipts with no fixed pattern or format and concluded that there is a need to perform manual validation of data contained in bounding boxes to classify whether the boxes contain valid date and amount information for feature engineering and training.  
+    * Alternative method for data validation – Data heuristics: Developed a simple data heuristic that can extract date information from the receipts with over 50% accuracy.
+      * Extract only numerical data from receipts. 
+      * Analyze the extracted numerical data with common date formats.
+      * Score the analyzed numerical data with the highest score being the date that has the highest possibility of being a date information.
 * Project Management:
   * Conducting a pre-project kickoff helps to set the tone and expectations of the project:
     * Create the user story.
