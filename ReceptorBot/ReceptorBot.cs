@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace ReceptorBot
@@ -26,6 +27,8 @@ namespace ReceptorBot
                     var res = await cli.StartOcrAsync(str);
                     res = await cli.GetOcrResult(res);
                     // await context.SendActivity(res);
+
+                    // Do prediction locally
                     dynamic js = JsonConvert.DeserializeObject(res);
                     var lines = new List<string>();
                     foreach (dynamic x in js.recognitionResult.lines)
@@ -44,6 +47,15 @@ namespace ReceptorBot
                         var AR = new Ranker<string>(TextMetrics.Amount);
                         await context.SendActivity($"Date={DR.Top(lines)}, Amount={AR.Top(lines)}");
                     }
+
+                    // Call flask web server
+                    var cnt = new StringContent(res, Encoding.UTF8, "application/json");
+                    var resp = await http.PostAsync("http://127.0.0.1:5000/api/", cnt);
+                    res = await resp.Content.ReadAsStringAsync();
+                    js = JsonConvert.DeserializeObject(res);
+                    await context.SendActivity($"Date={js.Date}, Amount={js.Amount}");
+
+
                 }
                 else
                 {
