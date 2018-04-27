@@ -35,6 +35,7 @@ namespace ReceptorBot
             services.AddBot<ReceptorBot>(options =>
             {
                 options.CredentialProvider = new ConfigurationCredentialProvider(Configuration);
+                options.Middleware.Add(new AttachmentStoreMiddleware(Config.StorageAcct, Config.StorageAcctKey, Config.StorageAcctDir, false));
                 options.Middleware.Add(new ShowTypingMiddleware());
             });
         }

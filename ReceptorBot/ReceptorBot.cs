@@ -1,8 +1,8 @@
 ﻿using Microsoft.Bot;
 using Microsoft.Bot.Builder;
 using Microsoft.Bot.Schema;
-using Microsoft.ProjectOxford.Vision;
-using Microsoft.ProjectOxford.Vision.Contract;
+using Newtonsoft.Json;
+using ReceptorBot.TextRanker;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -25,19 +25,25 @@ namespace ReceptorBot
                     var cli = new OcrClient(Config.VisionApiKey, "https://westus.api.cognitive.microsoft.com/vision/v1.0/");
                     var res = await cli.StartOcrAsync(str);
                     res = await cli.GetOcrResult(res);
-                    await context.SendActivity(res);
-                    /*
-                    HandwritingRecognitionOperationResult res;
-                    do
+                    // await context.SendActivity(res);
+                    dynamic js = JsonConvert.DeserializeObject(res);
+                    var lines = new List<string>();
+                    foreach (dynamic x in js.recognitionResult.lines)
                     {
-                        await Task.Delay(500);
-                        res = await cli.GetHandwritingRecognitionOperationResultAsync(t);
-                    } while (res.Status == HandwritingRecognitionOperationStatus.Running);
-                    foreach(var x in res.RecognitionResult.Lines)
-                    {
-                        await context.SendActivity(x.Words.Fold("",(w,s) => s+" "+w.Text));
+                        lines.Add(x.text.ToString());
                     }
-                    */
+                    await context.SendActivity(lines.Aggregate((a, b) => $"{a}\r\n{b}"));
+                    lines = lines.Select(x => TextUtils.Unspacify(TextUtils.DigiTrim(x))).Where(x => x.Length >= 2).ToList();
+                    if (lines==null || lines.Count<1)
+                    {
+                        await context.SendActivity("Sorry, nothing suitable found");
+                    }
+                    else
+                    {
+                        var DR = new Ranker<string>(TextMetrics.Date);
+                        var AR = new Ranker<string>(TextMetrics.Amount);
+                        await context.SendActivity($"Date={DR.Top(lines)}, Amount={AR.Top(lines)}");
+                    }
                 }
                 else
                 {
@@ -45,5 +51,6 @@ namespace ReceptorBot
                 }
             }
         }
+
     }
 }
